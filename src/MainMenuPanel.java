@@ -24,7 +24,7 @@ public class MainMenuPanel extends JPanel {
 
         title = new JLabel("INVADERS OF SPACE", SwingConstants.CENTER);
         startButton = new JButton("Start");
-        quitButton = new JButton("Quit");
+        quitButton = new JButton("Exit");
 
         title.setPreferredSize(new Dimension(gameApp.getWidth(), gameApp.getHeight() / 2));
         title.setFont(new Font("Sans-Serif", Font.PLAIN, 60));

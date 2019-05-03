@@ -1,4 +1,4 @@
-import java.awt.Toolkit;
+import java.awt.*;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -16,10 +16,11 @@ public class GameApp extends JFrame {
         super("Game");
         this.setSize(FRAME_WIDTH, FRAME_HEIGHT);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        mainPanel = new JPanel();
+        mainPanel.setBackground(Color.BLACK);
         gameplayPanel = new GameplayPanel(this);
         controlPanel = new ControlPanel(gameplayPanel);
         mainMenuPanel = new MainMenuPanel(this, mainPanel, controlPanel);
-        mainPanel = new JPanel();
         this.add(mainPanel);
         mainPanel.add(mainMenuPanel);
         mainPanel.add(controlPanel);

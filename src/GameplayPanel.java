@@ -1,7 +1,6 @@
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Image;
-import java.awt.Point;
+import com.sun.tools.javac.Main;
+
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -10,12 +9,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
-import java.util.Random;
-
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.Timer;
+import javax.swing.*;
 
 public class GameplayPanel extends JPanel {
 
@@ -25,14 +19,19 @@ public class GameplayPanel extends JPanel {
     private final int SPEED = 50;
     private Image backgroundImage;
     private JButton pauseButton;
-    private boolean pause = true;
+    private boolean pause;
     private ArrayList<Asteroid> asteroidList;
     private int currentEnemyLimit = 5;
-    private int totalEnemyCount;
+    private int totalEnemyCount = 30;
     private int currentEnemyCount = 0;
-    private int score;
     private int enemySpawnRate = 100;
     private GameApp gameApp;
+    private Timer[] allTimers = new Timer[2];
+    private Point clickLoc = null;
+    private int score = 0;
+    private JLabel scoreLabel;
+    private JButton quitButton;
+    private MainMenuPanel mainMenuPanel;
 
     public GameplayPanel(GameApp ga) {
         super();
@@ -42,29 +41,50 @@ public class GameplayPanel extends JPanel {
         asteroidList = new ArrayList<Asteroid>(currentEnemyLimit);
         backgroundImage = new ImageIcon("./images/space.png").getImage();
         this.setPreferredSize(new Dimension(gameApp.getWidth(), gameApp.getHeight()));
-        ship = new SpaceShip(new ImageIcon("./images/rocket_blue.png"), new Point(INIT_X, INIT_Y));
+        ship = new SpaceShip(new ImageIcon("./images/rocket_blue.png"), INIT_X, INIT_Y);
+        pause = false;
         pauseButton = new JButton("Pause");
+        pauseButton.setFocusable(false);
         pauseButton.addActionListener(new PauseListener());
         this.add(pauseButton);
         this.addMouseListener(new MListener());
         this.addMouseMotionListener(new MListener());
         this.addKeyListener(new KeyBoardListener());
         this.setFocusable(true);
-        AsteroidCreationTimer act = new AsteroidCreationTimer(100, null);
+        AsteroidCreationTimer act = new AsteroidCreationTimer(1000, null);
         AsteroidAnimationTimer aat = new AsteroidAnimationTimer(10, null);
-        act.start();
-        aat.start();
+        allTimers[0] = act;
+        allTimers[1] = aat;
+        allTimers[0].start();
+        allTimers[1].start();
+
+        scoreLabel = new JLabel(Integer.toString(score), SwingConstants.CENTER);
+        scoreLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 50));
+        scoreLabel.setForeground(Color.WHITE);
+        scoreLabel.setPreferredSize(new Dimension(600, 60));
+        this.add(scoreLabel);
+
+        quitButton = new JButton("End");
+        quitButton.addActionListener(new QuitListener(this));
+        this.add((quitButton));
     }
 
     public void paintComponent(java.awt.Graphics aBrush) {
         super.paintComponent(aBrush);
+        java.awt.Graphics2D g = (java.awt.Graphics2D)(aBrush);
         aBrush.drawImage(backgroundImage, 0, 0, GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT, null);
         aBrush.drawImage(ship.getShipImage().getImage(),
                 (int)ship.getX() - ship.getShipImage().getIconWidth() / 2,
                 (int)ship.getY() - ship.getShipImage().getIconHeight() / 2,
                 100, 100, null);
         for (Asteroid ast: asteroidList) {
-            aBrush.drawImage(ast.getAsteroidImage().getImage(), ast.getX(), ast.getY(), null);
+            g.rotate(ast.getCurrentRotation(),
+                    ast.getX() + ast.getAsteroidImage().getIconWidth() / 2
+                    , ast.getY() + ast.getAsteroidImage().getIconHeight() / 2);
+            aBrush.drawImage(ast.getAsteroidImage().getImage(), (int)ast.getX(), (int)ast.getY(), null);
+            g.rotate(-ast.getCurrentRotation(),
+                    ast.getX() + ast.getAsteroidImage().getIconWidth() / 2
+                    , ast.getY() + ast.getAsteroidImage().getIconHeight() / 2);
         }
     }
 
@@ -88,7 +108,7 @@ public class GameplayPanel extends JPanel {
     private class MListener implements MouseListener, MouseMotionListener {
 
         public void mouseDragged(MouseEvent e) {
-            if (pause == false) {
+            if (!pause) {
                 ship.setLocation(e.getX(), ship.getY());
                 repaint();
             }
@@ -113,7 +133,7 @@ public class GameplayPanel extends JPanel {
         public void keyTyped(KeyEvent e) {}
 
         public void keyPressed(KeyEvent e) {
-            if (pause == false) {
+            if (!pause) {
                 if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyChar() == 'a') {
                     ship.move(-SPEED, 0);
                 } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyChar() == 'd') {
@@ -130,7 +150,19 @@ public class GameplayPanel extends JPanel {
     private class PauseListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
-            pause = !pause;
+            if (!pause) {
+                pause = true;
+                pauseButton.setText("Play");
+                for (Timer timer: allTimers) {
+                    timer.stop();
+                }
+            } else if (pause) {
+                pause = false;
+                pauseButton.setText("Pause");
+                for (Timer timer: allTimers) {
+                    timer.start();
+                }
+            }
         }
 
     }
@@ -138,26 +170,51 @@ public class GameplayPanel extends JPanel {
     private class AsteroidAnimationTimer extends Timer {
 
         public AsteroidAnimationTimer(int delay, ActionListener listener) {
-            super(delay, listener);
+            super(delay, null);
             this.addActionListener(new AsteroidListener());
         }
 
         private class AsteroidListener implements ActionListener {
 
             public void actionPerformed(ActionEvent e) {
-                for (Asteroid ast: asteroidList) {
-                    ast.move(0, ast.getSpeed());
+                for (int i = 0; i < asteroidList.size(); i ++) {
+                    asteroidList.get(i).bounce();
+                    asteroidList.get(i).move(asteroidList.get(i).getxSpeed(), asteroidList.get(i).getySpeed());
+                    asteroidList.get(i).setCurrentRotation(
+                            asteroidList.get(i).getCurrentRotation() +
+                            asteroidList.get(i).getRotationSpeed());
                     repaint();
+                    if (asteroidList.get(i).getY() > GameApp.FRAME_HEIGHT) {
+                        asteroidList.remove((i));
+                        currentEnemyCount --;
+                        score ++;
+                        scoreLabel.setText(Integer.toString(score));
+                    }
                 }
             }
         }
 
     }
 
+    private class QuitListener implements ActionListener {
+
+        private GameplayPanel gameplayPanel;
+
+        public QuitListener(GameplayPanel gp) {
+            gameplayPanel = gp;
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            pause = true;
+            gameplayPanel.setVisible(false);
+            mainMenuPanel.setVisible(true);
+        }
+    }
+
     private class AsteroidCreationTimer extends Timer {
 
         public AsteroidCreationTimer(int delay, ActionListener listener) {
-            super(delay, listener);
+            super(delay, null);
             this.addActionListener(new AsteroidListener());
         }
 
@@ -166,7 +223,7 @@ public class GameplayPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 if (currentEnemyCount < currentEnemyLimit) {
                     int xLoc = (int) (Math.random() * GameApp.FRAME_WIDTH) - 100;
-                    Asteroid newAsteroid = new Asteroid(xLoc, 100);
+                    Asteroid newAsteroid = new Asteroid(xLoc, -100);
                     asteroidList.add(newAsteroid);
                     currentEnemyCount ++;
                     repaint();

@@ -1,46 +1,95 @@
-import java.awt.Point;
-
+import java.awt.geom.Ellipse2D;
 import javax.swing.ImageIcon;
 
 public class Asteroid {
 
     private ImageIcon asteroidImage;
-    private Point location;
-    private int speed = 2;
+    private double currentRotation;
+    private double rotationSpeed;
+    private double xPos;
+    private double yPos;
+    private double xSpeed;
+    private double ySpeed;
+    private double colliderWidth;
+    private double colliderHeight;
 
     public Asteroid(int x, int y) {
         asteroidImage = new ImageIcon("./images/asteroid.png");
-        location = new Point(x, y);
+        currentRotation = randomRange(0, 359);
+        rotationSpeed = randomRange(-0.05, 0.05);
+        xPos = x;
+        yPos = y;
+        xSpeed = randomRange(-2, 2);
+        ySpeed = randomRange(1, 2);
     }
 
     public ImageIcon getAsteroidImage() {
         return asteroidImage;
     }
 
-    public int getSpeed() {
-        return speed;
+    public double getxSpeed() {
+        return xSpeed;
     }
 
-    public void setSpeed(int spd) {
-        speed = spd;
+    public double getySpeed() {
+        return ySpeed;
     }
 
-    public int getX() {
-        return (int)location.getX();
+    public void setxSpeed(float xspd) {
+        xSpeed = xspd;
     }
 
-    public int getY() {
-        return (int)location.getY();
+    public void setySpeed(float ypsd) {
+        ySpeed = ypsd;
     }
 
-    public void move(int dx, int dy) {
-        location.move(location.x + dx, location.y + dy);
+    public double getX() {
+        return xPos;
+    }
+
+    public double getY() {
+        return yPos;
+    }
+
+    public double getCurrentRotation() {
+        return currentRotation;
+    }
+
+    public void setCurrentRotation(double currentRotation) {
+        this.currentRotation = currentRotation;
+    }
+
+    public double getRotationSpeed() {
+        return rotationSpeed;
+    }
+
+    public void move(double dx, double dy) {
+        setLocation(xPos + dx, yPos + dy);
     }
 
     public void setLocation(double x, double y) {
-        location.setLocation(x, y);
+        xPos = x;
+        yPos = y;
     }
 
+    public void bounce() {
+        if (xPos <= 0) {
+            xPos = 1;
+            xSpeed = -xSpeed;
+            rotationSpeed = randomRange(-0.05, 0.05);
+        } else if (xPos >= GameApp.FRAME_WIDTH - asteroidImage.getIconWidth()) {
+            xPos = GameApp.FRAME_WIDTH - asteroidImage.getIconWidth() - 1;
+            xSpeed = -xSpeed;
+            rotationSpeed = randomRange(-0.05, 0.05);
+        }
+    }
 
+    private double randomRange(double min, double max) {
+        double num = (double)(Math.random() * (max - min)) + min;
+        if (num == 0) {
+            randomRange(min, max);
+        }
+        return num;
+    }
 
 }
