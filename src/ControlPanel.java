@@ -1,7 +1,6 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Arrays;
 
 import javax.swing.*;
 
@@ -17,17 +16,14 @@ public class ControlPanel extends JPanel {
     public static final int ENEMY_MAX = 50;
     private GameplayPanel gameplayPanel;
     private AvatarHolder avatarHolder;
-    private int testInt = 0;
 
     public ControlPanel(GameplayPanel gp) {
-        //this.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 25));
         gameplayPanel = gp;
         this.add(new AvatarPanel());
         this.add(new EnemyCountPanel());
         this.add(new DifficultyPanel());
         beginGameButton = new JButton("Begin");
-        beginGameButton.addActionListener(new BeginListener(this, gameplayPanel)); //FIXME shouldn't this take gp? the parameter?
-
+        beginGameButton.addActionListener(new BeginListener(this, gp));
         this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT));
         this.add(beginGameButton);
     }
@@ -35,7 +31,6 @@ public class ControlPanel extends JPanel {
 
 
     private class EnemyCountListener implements ActionListener {
-
         public void actionPerformed(ActionEvent e) {
             if (e.getSource().equals(decreaseEnemyCountButton) && totalEnemyCount > ENEMY_MIN) {
                 totalEnemyCount --;
@@ -76,27 +71,32 @@ public class ControlPanel extends JPanel {
 
     private class AvatarPanel extends JPanel {
         public AvatarPanel() {
-            this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/4));
+            this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/3));
             avatarHolder = new AvatarHolder();
+            GridBagConstraints gbc = new GridBagConstraints();
+            this.setLayout(new GridBagLayout());
 
-            //label
             avatarLabel = new JLabel("AVATAR SELECTION", SwingConstants.CENTER);
             avatarLabel.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, 50));
             avatarLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 30));
-            this.add(avatarLabel);
+            gbc.ipady = 10;
+            gbc.gridx = 1;
+            gbc.gridy = 0;
+            this.add(avatarLabel, gbc);
 
-            //images
             avatarImages = new ImageIcon[3];
             avatarImages[0] = new ImageIcon("./images/rocket_red.png");
             avatarImages[1] = new ImageIcon("./images/rocket_green.png");
             avatarImages[2] = new ImageIcon("./images/rocket_blue.png");
             for (int i = 0; i < avatarImages.length; i ++) {
+                gbc.ipady = 0;
+                gbc.gridx = i;
+                gbc.gridy = 1;
                 JLabel label = new JLabel(" ", avatarImages[i], JLabel.RIGHT);
-                this.add(label);
+                this.add(label, gbc);
 
             }
 
-            //buttons
             avatarButtonGroup = new ButtonGroup();
             avatarButtons = new JRadioButton[3];
             for (int i = 0; i < 3; i ++) {
@@ -104,7 +104,10 @@ public class ControlPanel extends JPanel {
                 avatarButtonGroup.add(avatarButtons[i]);
                 avatarButtons[i].setIcon(new ImageIcon("./images/button_false.png"));
                 avatarButtons[i].setSelectedIcon(new ImageIcon("./images/button_true.png"));
-                this.add(avatarButtons[i]);
+                gbc.ipady = 0;
+                gbc.gridx = i;
+                gbc.gridy = 2;
+                this.add(avatarButtons[i], gbc);
             }
             avatarButtons[0].setSelected(true);
         }
@@ -112,46 +115,103 @@ public class ControlPanel extends JPanel {
 
     private class EnemyCountPanel extends JPanel {
         public EnemyCountPanel() {
-            //this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/5));
-            totalEnemyCount = 30;
+            this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/4));
+            GridBagConstraints gbc = new GridBagConstraints();
+            this.setLayout(new GridBagLayout());
+
+            JPanel labelPanel = new JPanel();
+            labelPanel.setLayout(new GridBagLayout());
+            JPanel enemyCountPanel = new JPanel();
+            enemyCountPanel.setLayout(new GridBagLayout());
+
             enemyCountLabel = new JLabel("TOTAL NUMBER OF ENEMIES", SwingConstants.CENTER);
-            enemyCountNumber = new JLabel(Integer.toString(totalEnemyCount), SwingConstants.CENTER);
-            //enemyCountLabel.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/10));
-            //enemyCountNumber.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH / 8, GameApp.FRAME_HEIGHT/10));
             enemyCountLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 30));
+            totalEnemyCount = 30;
+            enemyCountNumber = new JLabel(Integer.toString(totalEnemyCount), SwingConstants.CENTER);
             enemyCountNumber.setFont(new Font("Sans-Serif", Font.PLAIN, 30));
-            increaseEnemyCountButton = new JButton(">");
-            increaseEnemyCountButton.addActionListener(new EnemyCountListener());
             decreaseEnemyCountButton = new JButton("<");
             decreaseEnemyCountButton.addActionListener(new EnemyCountListener());
-            this.add(enemyCountLabel);
-            this.add(decreaseEnemyCountButton);
-            this.add(enemyCountNumber);
-            this.add(increaseEnemyCountButton);
+            increaseEnemyCountButton = new JButton(">");
+            increaseEnemyCountButton.addActionListener(new EnemyCountListener());
+
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            labelPanel.add(enemyCountLabel, gbc);
+
+            gbc.fill = 0;
+            gbc.weightx = 0;
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            enemyCountPanel.add(decreaseEnemyCountButton, gbc);
+
+            gbc.gridx = 1;
+            gbc.gridy = 1;
+            gbc.ipadx = 50;
+            enemyCountPanel.add(enemyCountNumber, gbc);
+
+            gbc.gridx = 2;
+            gbc.gridy = 1;
+            gbc.ipadx = 0;
+            enemyCountPanel.add(increaseEnemyCountButton, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            this.add(labelPanel, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            this.add(enemyCountPanel, gbc);
+
         }
     }
 
     private class DifficultyPanel extends JPanel {
         public DifficultyPanel() {
-            //this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/3));
+            this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/4));
+            GridBagConstraints gbc = new GridBagConstraints();
+            this.setLayout(new GridBagLayout());
+
+            JPanel difficultyLabelPanel = new JPanel();
+            difficultyLabelPanel.setLayout(new GridBagLayout());
+            JPanel difficultyButtonPanel = new JPanel();
+            difficultyButtonPanel.setLayout(new GridBagLayout());
+
             difficultyLabel = new JLabel("GAME DIFFICULTY", SwingConstants.CENTER);
             JLabel difficultyTextLabel = new JLabel("Easy          Medium          Hard", SwingConstants.CENTER);
-            //difficultyLabel.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/10));
-            //difficultyTextLabel.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT/10));
             difficultyLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 30));
             difficultyTextLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 20));
             difficultyButtonGroup = new ButtonGroup();
             difficultyButtons = new JRadioButton[3];
-            this.add(difficultyLabel);
-            this.add(difficultyTextLabel);
+
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.gridy = 0;
+            difficultyLabelPanel.add(difficultyLabel, gbc);
+
+            gbc.gridy = 1;
+            difficultyLabelPanel.add(difficultyTextLabel, gbc);
+
+
             for (int i = 0; i < 3; i ++) {
                 difficultyButtons[i] = new JRadioButton("", false);
                 difficultyButtonGroup.add(difficultyButtons[i]);
                 difficultyButtons[i].setIcon(new ImageIcon("./images/button_false.png"));
                 difficultyButtons[i].setSelectedIcon(new ImageIcon("./images/button_true.png"));
-                this.add(difficultyButtons[i]);
+                gbc.fill = 0;
+                gbc.weightx = 0;
+                gbc.gridx = i;
+                gbc.gridy = 0;
+                if (i != 2) gbc.ipadx = 80;
+                else gbc.ipadx = 0;
+
+                difficultyButtonPanel.add(difficultyButtons[i], gbc);
             }
+
             difficultyButtons[0].setSelected(true);
+            gbc.fill = GridBagConstraints.CENTER;
+            gbc.gridy = 0;
+            this.add(difficultyLabelPanel, gbc);
+
+            gbc.gridy = 1;
+            this.add(difficultyButtonPanel, gbc);
         }
     }
 }
