@@ -1,5 +1,3 @@
-import com.sun.tools.javac.Main;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -46,6 +44,7 @@ public class GameplayPanel extends JPanel {
         pauseButton = new JButton("Pause");
         pauseButton.setFocusable(false);
         pauseButton.addActionListener(new PauseListener());
+        this.setBackground(Color.BLACK);
         this.add(pauseButton);
         this.addMouseListener(new MListener());
         this.addMouseMotionListener(new MListener());
@@ -178,14 +177,22 @@ public class GameplayPanel extends JPanel {
 
             public void actionPerformed(ActionEvent e) {
                 for (int i = 0; i < asteroidList.size(); i ++) {
-                    asteroidList.get(i).bounce();
-                    asteroidList.get(i).move(asteroidList.get(i).getxSpeed(), asteroidList.get(i).getySpeed());
-                    asteroidList.get(i).setCurrentRotation(
-                            asteroidList.get(i).getCurrentRotation() +
-                            asteroidList.get(i).getRotationSpeed());
+                    Asteroid currentAsteroid = asteroidList.get(i);
+                    currentAsteroid.updateBounds();
+                    if (currentAsteroid.collisionCheck()) {
+                        asteroidList.remove(i);
+                        i --;
+                        currentEnemyCount --;
+                    }
+                    currentAsteroid.bounce();
+                    currentAsteroid.move(currentAsteroid.getxSpeed(), currentAsteroid.getySpeed());
+                    currentAsteroid.setCurrentRotation(
+                            currentAsteroid.getCurrentRotation() +
+                                    currentAsteroid.getRotationSpeed());
                     repaint();
-                    if (asteroidList.get(i).getY() > GameApp.FRAME_HEIGHT) {
+                    if (currentAsteroid.getY() > GameApp.FRAME_HEIGHT) {
                         asteroidList.remove((i));
+                        i --;
                         currentEnemyCount --;
                         score ++;
                         scoreLabel.setText(Integer.toString(score));
@@ -223,7 +230,7 @@ public class GameplayPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 if (currentEnemyCount < currentEnemyLimit) {
                     int xLoc = (int) (Math.random() * GameApp.FRAME_WIDTH) - 100;
-                    Asteroid newAsteroid = new Asteroid(xLoc, -100);
+                    Asteroid newAsteroid = new Asteroid(ship, xLoc, -100);
                     asteroidList.add(newAsteroid);
                     currentEnemyCount ++;
                     repaint();

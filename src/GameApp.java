@@ -4,7 +4,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class GameApp extends JFrame {
-
+    
     private MainMenuPanel mainMenuPanel;
     private ControlPanel controlPanel;
     private GameplayPanel gameplayPanel;
@@ -16,6 +16,7 @@ public class GameApp extends JFrame {
         super("Game");
         this.setSize(FRAME_WIDTH, FRAME_HEIGHT);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setBackground(Color.BLACK);
         mainPanel = new JPanel();
         mainPanel.setBackground(Color.BLACK);
         gameplayPanel = new GameplayPanel(this);

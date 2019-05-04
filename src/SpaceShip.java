@@ -7,15 +7,15 @@ public class SpaceShip {
     private Rectangle2D hitBox;
     private double xPos;
     private double yPos;
-    private double colliderWidth;
-    private double colliderHeight;
+    private double colliderWidth = 50;
+    private double colliderHeight = 80;
 
     public SpaceShip(ImageIcon img, int x, int y) {
         shipImage = img;
         xPos = x;
         yPos = y;
         hitBox = new Rectangle2D.Double();
-        hitBox.setRect(xPos - colliderWidth / 2, yPos - colliderHeight / 2,
+        hitBox.setFrame(xPos - colliderWidth / 2, yPos - colliderHeight / 2,
                 colliderWidth, colliderHeight);
     }
 
@@ -54,22 +54,12 @@ public class SpaceShip {
     public void setLocation(double x, double y) {
         xPos = x;
         yPos = y;
+        hitBox.setFrame(xPos - colliderWidth / 2, yPos - colliderHeight / 2,
+                colliderWidth, colliderHeight);
     }
 
-    public void setRect(double x, double y, double w, double h) {
-
-    }
-
-    public int outcode(double x, double y) {
-        return 0;
-    }
-
-    public Rectangle2D createIntersection(Rectangle2D r) {
-        return null;
-    }
-
-    public Rectangle2D createUnion(Rectangle2D r) {
-        return null;
+    public Rectangle2D getHitBox() {
+        return hitBox;
     }
 
     public boolean collide() {

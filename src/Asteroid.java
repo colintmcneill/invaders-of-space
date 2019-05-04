@@ -6,14 +6,20 @@ public class Asteroid {
     private ImageIcon asteroidImage;
     private double currentRotation;
     private double rotationSpeed;
+    private SpaceShip ship;
+    private Ellipse2D hitBox;
     private double xPos;
     private double yPos;
     private double xSpeed;
     private double ySpeed;
-    private double colliderWidth;
-    private double colliderHeight;
+    private double colliderWidth = 100;
+    private double colliderHeight = 100;
 
-    public Asteroid(int x, int y) {
+    public Asteroid(SpaceShip shp, int x, int y) {
+        ship = shp;
+        hitBox = new Ellipse2D.Double();
+        hitBox.setFrame(xPos - colliderWidth / 2, yPos - colliderHeight / 2,
+                colliderWidth, colliderHeight);
         asteroidImage = new ImageIcon("./images/asteroid.png");
         currentRotation = randomRange(0, 359);
         rotationSpeed = randomRange(-0.05, 0.05);
@@ -82,6 +88,18 @@ public class Asteroid {
             xSpeed = -xSpeed;
             rotationSpeed = randomRange(-0.05, 0.05);
         }
+    }
+
+    public boolean collisionCheck() {
+        if (hitBox.getBounds2D().intersects(ship.getHitBox().getBounds2D())) {
+            System.out.println("HIT!");
+            return true;
+        }
+        return false;
+    }
+
+    public void updateBounds() {
+        hitBox.setFrame(xPos, yPos, colliderWidth, colliderHeight);
     }
 
     private double randomRange(double min, double max) {
