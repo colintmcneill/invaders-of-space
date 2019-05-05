@@ -4,7 +4,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import javax.swing.*;
@@ -14,6 +13,7 @@ public class GameplayPanel extends JPanel {
     private SpaceShip ship;
     private final int INIT_X = GameApp.FRAME_WIDTH / 2;
     private final int INIT_Y = GameApp.FRAME_HEIGHT * 4 / 5;
+    private final int XCLAMP = 35;
     private final int SPEED = 50;
     private Image backgroundImage;
     private JButton pauseButton;
@@ -22,51 +22,124 @@ public class GameplayPanel extends JPanel {
     private int currentEnemyLimit = 5;
     private int totalEnemyCount = 30;
     private int currentEnemyCount = 0;
-    private int enemySpawnRate = 100;
-    private GameApp gameApp;
-    private Timer[] allTimers = new Timer[2];
-    private Point clickLoc = null;
     private int score = 0;
     private JLabel scoreLabel;
-    private JButton quitButton;
-    private MainMenuPanel mainMenuPanel;
+    private JButton endButton;
+    private PanelManager panelManager;
+    private MainGameTimer mainGameTimer;
+    private AsteroidCreationTimer asteroidCreationTimer;
+    private int asteroidSpawnRate = 500;
 
-    public GameplayPanel(GameApp ga) {
+    public GameplayPanel(PanelManager panelManager) {
         super();
-        gameApp = ga;
+        this.panelManager = panelManager;
+        asteroidList = new ArrayList<Asteroid>(currentEnemyLimit);
+        asteroidCreationTimer = new AsteroidCreationTimer(0, null);
+        mainGameTimer = new MainGameTimer(10, null);
+        scoreLabel = new JLabel(Integer.toString(0), SwingConstants.CENTER);
+        pauseButton = new JButton("Pause");
+        endButton = new JButton("End");
+        backgroundImage = new ImageIcon("./images/space.png").getImage();
+        ship = new SpaceShip(new ImageIcon("./images/rocket_blue.png"), INIT_X, INIT_Y);
+        constructGame();
+        pauseButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (!pause) {
+                    pause = true;
+                    pauseButton.setText("Play");
+                    stopTimers();
+                } else if (pause) {
+                    pause = false;
+                    pauseButton.setText("Pause");
+                    startTimers();
+                }
+            }
+        });
+        this.add(pauseButton);
+        endButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                panelManager.changeCurrentState(PanelManager.PanelState.MAIN_MENU);
+                constructGame();
+                restartTimers();
+                stopTimers();
+                pause = true;
+            }
+        });
+        this.add(endButton);
+
+        this.addMouseMotionListener(new MouseMotionListener() {
+            public void mouseDragged(MouseEvent e) {
+                if (!pause) {
+                    if (e.getX() > XCLAMP && e.getX() < GameApp.FRAME_WIDTH - XCLAMP) {
+                        ship.setLocation(e.getX(), ship.getY());
+                    }
+                    repaint();
+                }
+            }
+            public void mouseMoved(MouseEvent e) {}
+        });
+        this.addKeyListener(new KeyListener() {
+            public void keyTyped(KeyEvent e) {}
+
+            public void keyPressed(KeyEvent e) {
+                if (!pause) {
+                    if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyChar() == 'a') {
+                        if (ship.getX() - SPEED > XCLAMP) {
+                            ship.move(-SPEED, 0);
+                        }
+                    } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyChar() == 'd') {
+                        if (ship.getX() + SPEED < GameApp.FRAME_WIDTH - XCLAMP) {
+                            ship.move(SPEED, 0);
+                        }
+                    }
+                    repaint();
+                }
+            }
+
+            public void keyReleased(KeyEvent e) {}
+        });
+        this.setFocusable(true);
+        this.add(scoreLabel);
+    }
+
+    public void constructGame() {
         totalEnemyCount = ControlPanel.ENEMY_MIN;
         currentEnemyCount = 0;
-        asteroidList = new ArrayList<Asteroid>(currentEnemyLimit);
-        backgroundImage = new ImageIcon("./images/space.png").getImage();
-        this.setPreferredSize(new Dimension(gameApp.getWidth(), gameApp.getHeight()));
-        ship = new SpaceShip(new ImageIcon("./images/rocket_blue.png"), INIT_X, INIT_Y);
+        score = 0;
         pause = false;
-        pauseButton = new JButton("Pause");
-        pauseButton.setFocusable(false);
-        pauseButton.addActionListener(new PauseListener());
-        this.setBackground(Color.BLACK);
-        this.add(pauseButton);
-        this.addMouseListener(new MListener());
-        this.addMouseMotionListener(new MListener());
-        this.addKeyListener(new KeyBoardListener());
-        this.setFocusable(true);
-        AsteroidCreationTimer act = new AsteroidCreationTimer(1000, null);
-        AsteroidAnimationTimer aat = new AsteroidAnimationTimer(10, null);
-        allTimers[0] = act;
-        allTimers[1] = aat;
-        allTimers[0].start();
-        allTimers[1].start();
+        ship.setLocation(INIT_X, INIT_Y);
 
-        scoreLabel = new JLabel(Integer.toString(score), SwingConstants.CENTER);
+        this.setBackground(Color.BLACK);
+        this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT));
+        asteroidCreationTimer.setDelay(asteroidSpawnRate);
+
+        pause = false;
         scoreLabel.setFont(new Font("Sans-Serif", Font.PLAIN, 50));
         scoreLabel.setForeground(Color.WHITE);
+        scoreLabel.setText(Integer.toString(score));
         scoreLabel.setPreferredSize(new Dimension(600, 60));
-        this.add(scoreLabel);
 
-        quitButton = new JButton("End");
-        quitButton.addActionListener(new QuitListener(this));
-        this.add((quitButton));
+        for (int i = 0; i < asteroidList.size(); i ++) {
+            asteroidList.remove(i);
+            i --;
+        }
     }
+
+    public void startTimers() {
+        mainGameTimer.start();
+        asteroidCreationTimer.start();
+    }
+
+    public void stopTimers() {
+        mainGameTimer.stop();
+        asteroidCreationTimer.stop();
+    }
+
+    public void restartTimers() {
+        mainGameTimer.restart();
+        asteroidCreationTimer.restart();
+    }
+
 
     public void paintComponent(java.awt.Graphics aBrush) {
         super.paintComponent(aBrush);
@@ -87,6 +160,14 @@ public class GameplayPanel extends JPanel {
         }
     }
 
+    public int getTotalEnemyCount() {
+        return totalEnemyCount;
+    }
+
+    public void setAsteroidSpawnRate(int asteroidSpawnRate) {
+        this.asteroidSpawnRate = asteroidSpawnRate;
+    }
+
     public void setAvatarImage(ImageIcon img) {
         ship.setShipImage(img);
         repaint();
@@ -104,71 +185,25 @@ public class GameplayPanel extends JPanel {
         currentEnemyLimit = el;
     }
 
-    private class MListener implements MouseListener, MouseMotionListener {
-
-        public void mouseDragged(MouseEvent e) {
-            if (!pause) {
-                ship.setLocation(e.getX(), ship.getY());
-                repaint();
-            }
-        }
-
-        public void mouseMoved(MouseEvent e) {}
-
-        public void mouseClicked(MouseEvent e) {}
-
-        public void mousePressed(MouseEvent e) {}
-
-        public void mouseReleased(MouseEvent e) {}
-
-        public void mouseEntered(MouseEvent e) {}
-
-        public void mouseExited(MouseEvent e) {}
-
+    public int getScore() {
+        return score;
     }
 
-    private class KeyBoardListener implements KeyListener {
-
-        public void keyTyped(KeyEvent e) {}
-
-        public void keyPressed(KeyEvent e) {
-            if (!pause) {
-                if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyChar() == 'a') {
-                    ship.move(-SPEED, 0);
-                } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyChar() == 'd') {
-                    ship.move(SPEED, 0);
-                }
-                repaint();
-            }
-        }
-
-        public void keyReleased(KeyEvent e) {}
-
+    public void setScore(int score) {
+        this.score = score;
     }
 
-    private class PauseListener implements ActionListener {
-
-        public void actionPerformed(ActionEvent e) {
-            if (!pause) {
-                pause = true;
-                pauseButton.setText("Play");
-                for (Timer timer: allTimers) {
-                    timer.stop();
-                }
-            } else if (pause) {
-                pause = false;
-                pauseButton.setText("Pause");
-                for (Timer timer: allTimers) {
-                    timer.start();
-                }
-            }
-        }
-
+    public AsteroidCreationTimer getAsteroidCreationTimer() {
+        return asteroidCreationTimer;
     }
 
-    private class AsteroidAnimationTimer extends Timer {
+    public void setTotalEnemyCount(int totalEnemyCount) {
+        this.totalEnemyCount = totalEnemyCount;
+    }
 
-        public AsteroidAnimationTimer(int delay, ActionListener listener) {
+    private class MainGameTimer extends Timer {
+
+        public MainGameTimer(int delay, ActionListener listener) {
             super(delay, null);
             this.addActionListener(new AsteroidListener());
         }
@@ -176,45 +211,43 @@ public class GameplayPanel extends JPanel {
         private class AsteroidListener implements ActionListener {
 
             public void actionPerformed(ActionEvent e) {
-                for (int i = 0; i < asteroidList.size(); i ++) {
-                    Asteroid currentAsteroid = asteroidList.get(i);
-                    currentAsteroid.updateBounds();
-                    if (currentAsteroid.collisionCheck()) {
-                        asteroidList.remove(i);
-                        i --;
-                        currentEnemyCount --;
-                    }
-                    currentAsteroid.bounce();
-                    currentAsteroid.move(currentAsteroid.getxSpeed(), currentAsteroid.getySpeed());
-                    currentAsteroid.setCurrentRotation(
-                            currentAsteroid.getCurrentRotation() +
-                                    currentAsteroid.getRotationSpeed());
-                    repaint();
-                    if (currentAsteroid.getY() > GameApp.FRAME_HEIGHT) {
-                        asteroidList.remove((i));
-                        i --;
-                        currentEnemyCount --;
-                        score ++;
-                        scoreLabel.setText(Integer.toString(score));
+                if (!pause) {
+                    for (int i = 0; i < asteroidList.size(); i++) {
+                        Asteroid currentAsteroid = asteroidList.get(i);
+                        if (currentAsteroid.collisionCheck()) {
+                            panelManager.getWinLosePanel().updateScoreLabel();
+                            panelManager.getWinLosePanel().updateWinLoseLabel(false);
+                            panelManager.changeCurrentState(PanelManager.PanelState.WIN_LOSE);
+                            constructGame();
+                            restartTimers();
+                            stopTimers();
+                            pause = true;
+                            repaint();
+                        }
+                        currentAsteroid.bounce();
+                        currentAsteroid.move(currentAsteroid.getxSpeed(), currentAsteroid.getySpeed());
+                        currentAsteroid.setCurrentRotation(
+                                currentAsteroid.getCurrentRotation() + currentAsteroid.getRotationSpeed());
+                        repaint();
+                        if (currentAsteroid.getY() > GameApp.FRAME_HEIGHT) {
+                            asteroidList.remove(i);
+                            i --;
+                            score++;
+                            scoreLabel.setText(Integer.toString(score));
+                            if (score >= totalEnemyCount) {
+                                panelManager.getWinLosePanel().updateScoreLabel();
+                                panelManager.getWinLosePanel().updateWinLoseLabel(true);
+                                panelManager.changeCurrentState(PanelManager.PanelState.WIN_LOSE);
+                                constructGame();
+                                restartTimers();
+                                stopTimers();
+                                pause = true;
+                                repaint();
+                            }
+                        }
                     }
                 }
             }
-        }
-
-    }
-
-    private class QuitListener implements ActionListener {
-
-        private GameplayPanel gameplayPanel;
-
-        public QuitListener(GameplayPanel gp) {
-            gameplayPanel = gp;
-        }
-
-        public void actionPerformed(ActionEvent e) {
-            pause = true;
-            gameplayPanel.setVisible(false);
-            mainMenuPanel.setVisible(true);
         }
     }
 
@@ -228,16 +261,17 @@ public class GameplayPanel extends JPanel {
         private class AsteroidListener implements ActionListener {
 
             public void actionPerformed(ActionEvent e) {
-                if (currentEnemyCount < currentEnemyLimit) {
+                if (!pause && asteroidList.size() < currentEnemyLimit) {
+                    asteroidCreationTimer.setDelay(asteroidSpawnRate);
                     int xLoc = (int) (Math.random() * GameApp.FRAME_WIDTH) - 100;
-                    Asteroid newAsteroid = new Asteroid(ship, xLoc, -100);
+                    Asteroid newAsteroid = new Asteroid(panelManager, ship, xLoc, 0);
                     asteroidList.add(newAsteroid);
+                    newAsteroid.setySpeed(panelManager.getControlPanel().getDifficultySpeed());
                     currentEnemyCount ++;
                     repaint();
                 }
             }
         }
-
     }
 
 }

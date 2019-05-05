@@ -14,21 +14,19 @@ public class ControlPanel extends JPanel {
     private int totalEnemyCount;
     public static final int ENEMY_MIN = 10;
     public static final int ENEMY_MAX = 50;
-    private GameplayPanel gameplayPanel;
     private AvatarHolder avatarHolder;
+    private PanelManager panelManager;
 
-    public ControlPanel(GameplayPanel gp) {
-        gameplayPanel = gp;
+    public ControlPanel(PanelManager panelManager) {
+        this.panelManager = panelManager;
         this.add(new AvatarPanel());
         this.add(new EnemyCountPanel());
         this.add(new DifficultyPanel());
         beginGameButton = new JButton("Begin");
-        beginGameButton.addActionListener(new BeginListener(this, gp));
+        beginGameButton.addActionListener(new BeginListener());
         this.setPreferredSize(new Dimension(GameApp.FRAME_WIDTH, GameApp.FRAME_HEIGHT));
         this.add(beginGameButton);
     }
-
-
 
     private class EnemyCountListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
@@ -40,18 +38,9 @@ public class ControlPanel extends JPanel {
             }
             enemyCountNumber.setText(Integer.toString(totalEnemyCount));
         }
-
     }
 
     private class BeginListener implements ActionListener {
-
-        ControlPanel controlPanel;
-        GameplayPanel gameplayPanel;
-
-        public BeginListener(ControlPanel cp, GameplayPanel gp) {
-            controlPanel = cp;
-            gameplayPanel = gp;
-        }
 
         public void actionPerformed(ActionEvent e) {
             if (avatarButtons[0].isSelected()) {
@@ -61,13 +50,48 @@ public class ControlPanel extends JPanel {
             } else {
                 avatarHolder.setImageIcon(avatarImages[2]);
             }
-            gameplayPanel.setAvatarImage(avatarHolder.getAvatarImage());
-            gameplayPanel.setPause(false);
-            controlPanel.setVisible(false);
-        }
+            panelManager.getGameplayPanel().setAvatarImage(avatarHolder.getAvatarImage());
 
+
+            panelManager.changeCurrentState(PanelManager.PanelState.GAME);
+            panelManager.getGameplayPanel().startTimers();
+            panelManager.getGameplayPanel().setPause(false);
+            panelManager.getGameplayPanel().setTotalEnemyCount(totalEnemyCount);
+            setGamePanelDifficulty();
+            panelManager.getGameplayPanel().setAsteroidSpawnRate(getDifficultySpawnRate());
+        }
     }
 
+    private void setGamePanelDifficulty() {
+        if (difficultyButtons[0].isSelected()) {
+            panelManager.getGameplayPanel().setCurrentEnemyLimit(3);
+        } else if (difficultyButtons[1].isSelected()) {
+            panelManager.getGameplayPanel().setCurrentEnemyLimit(6);
+        } else if (difficultyButtons[2].isSelected()) {
+            panelManager.getGameplayPanel().setCurrentEnemyLimit(12);
+        }
+    }
+
+    public int getDifficultySpeed() {
+        if (difficultyButtons[0].isSelected()) {
+            return 3;
+        } else if (difficultyButtons[1].isSelected()) {
+            return 5;
+        } else {
+            return 7;
+        }
+    }
+
+    public int getDifficultySpawnRate() {
+        if (difficultyButtons[0].isSelected()) {
+            return 1500;
+        } else if (difficultyButtons[1].isSelected()) {
+            return 750;
+        } else if (difficultyButtons[2].isSelected()) {
+            return 250;
+        }
+        return 0;
+    }
 
     private class AvatarPanel extends JPanel {
         public AvatarPanel() {
@@ -199,9 +223,11 @@ public class ControlPanel extends JPanel {
                 gbc.weightx = 0;
                 gbc.gridx = i;
                 gbc.gridy = 0;
-                if (i != 2) gbc.ipadx = 80;
-                else gbc.ipadx = 0;
-
+                if (i != 2) {
+                    gbc.ipadx = 80;
+                } else {
+                    gbc.ipadx = 0;
+                }
                 difficultyButtonPanel.add(difficultyButtons[i], gbc);
             }
 
